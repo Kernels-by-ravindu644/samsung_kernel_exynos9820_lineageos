@@ -76,7 +76,7 @@ build_kernel(){
         make "${BUILD_OPTIONS[@]}" mrproper
 
     # make default configuration.
-    make "${BUILD_OPTIONS[@]}" "${KERNEL_DEFCONFIG}" common.config
+    make "${BUILD_OPTIONS[@]}" "${KERNEL_DEFCONFIG}" common.config droidspaces.config
 
     # configure the kernel
     #make "${BUILD_OPTIONS[@]}" menuconfig
