@@ -1,0 +1,81 @@
+name: Build and Release Kernel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        model: [beyond0lte, beyond1lte, beyond2lte, beyondx, d1, d1x, d2s, d2x, f62]
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y bc build-essential libelf-dev libssl-dev bison flex python3 python-is-python3 rsync zip unzip curl
+
+      - name: Cache Toolchain
+        id: cache-toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/toolchains/clang-r563880c
+          key: ${{ runner.os }}-toolchain-clang-r563880c
+
+      - name: Run build script
+        run: |
+          ./build.sh ${{ matrix.model }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-build-${{ matrix.model }}
+          path: dist/*.zip
+
+  release:
+    runs-on: ubuntu-22.04
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set Release Tag
+        run: |
+          echo "RELEASE_TAG=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: kernel-build-*
+          merge-multiple: true
+          path: dist
+
+      - name: Upload Single Unified Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Droidspaces-KSUN-Exynos9820-${{ env.RELEASE_TAG }}
+          path: dist/*.zip
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.RELEASE_TAG }}
+          name: "Kernel Release ${{ env.RELEASE_TAG }}"
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "dist/*.zip"
+          allowUpdates: true
+          body: "Automated build of Droidspaces-KSUN Kernel.\nCommit: ${{ github.sha }}"
