@@ -10,6 +10,7 @@ SCRIPT_DIR="$(dirname $(readlink -fq "$0"))"
 cd "${SCRIPT_DIR}"
 
 KERNEL_VERSION="$(make kernelversion 2>/dev/null)"
+MODEL="${1:-beyondx}"
 
 # init & update git submodules
 git submodule update --init --recursive
@@ -46,13 +47,36 @@ export BUILD_OPTIONS=(
     HOSTCXX=g++
 )
 
+# device configuration
+declare -A DEVICES=(
+    ["beyond0lte"]="exynos9820-beyond0lte_defconfig"
+    ["beyond1lte"]="exynos9820-beyond1lte_defconfig"
+    ["beyond2lte"]="exynos9820-beyond2lte_defconfig"
+    ["beyondx"]="exynos9820-beyondx_defconfig"
+    ["d1"]="exynos9820-d1_defconfig"
+    ["d1x"]="exynos9820-d1x_defconfig"
+    ["d2s"]="exynos9820-d2s_defconfig"
+    ["d2x"]="exynos9820-d2x_defconfig"
+    ["f62"]="exynos9820-f62_defconfig"
+)
+
+# Validate that the requested model exists in the device list
+if [[ -z "${DEVICES[$MODEL]-}" ]]; then
+    echo "Error: Unknown model '${MODEL}'."
+    echo "Supported models: ${!DEVICES[*]}"
+    exit 1
+fi
+
+# store the defconfig for the requested model
+read KERNEL_DEFCONFIG <<< "${DEVICES[${MODEL}]}"
+
 build_kernel(){
     # cleanup
     make "${BUILD_OPTIONS[@]}" clean && \
         make "${BUILD_OPTIONS[@]}" mrproper
 
     # make default configuration.
-    make "${BUILD_OPTIONS[@]}" exynos9820-beyond2lte_defconfig
+    make "${BUILD_OPTIONS[@]}" "${KERNEL_DEFCONFIG}"
 
     # configure the kernel
     #make "${BUILD_OPTIONS[@]}" menuconfig
@@ -64,4 +88,5 @@ build_kernel(){
     cp "${SCRIPT_DIR}/out/arch/arm64/boot/Image" "${SCRIPT_DIR}/dist"
 }
 
-build_kernel
+echo "Building kernel for ${MODEL}..." && \
+    build_kernel
