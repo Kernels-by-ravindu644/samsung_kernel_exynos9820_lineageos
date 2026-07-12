@@ -98,5 +98,16 @@ build_kernel(){
     cp "${SCRIPT_DIR}/out/arch/arm64/boot/Image" "${SCRIPT_DIR}/dist"
 }
 
+pack_kernel(){
+    cp "${SCRIPT_DIR}/dist/Image" "${SCRIPT_DIR}/tools/AnyKernel3"
+
+    cd "${SCRIPT_DIR}/tools/AnyKernel3" && \
+    zip -r -9 "${SCRIPT_DIR}/dist/Droidspaces-KSUN-${MODEL}-${KERNEL_VERSION}-${BUILD_VERSION}.zip" .
+
+    cd "${SCRIPT_DIR}"
+}
+
 echo "Building kernel for ${MODEL}..." && \
-    build_kernel
+    build_kernel && \
+    echo "Packing kernel..." && \
+    pack_kernel
