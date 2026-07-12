@@ -76,7 +76,7 @@ build_kernel(){
         make "${BUILD_OPTIONS[@]}" mrproper
 
     # make default configuration.
-    make "${BUILD_OPTIONS[@]}" "${KERNEL_DEFCONFIG}"
+    make "${BUILD_OPTIONS[@]}" "${KERNEL_DEFCONFIG}" common.config
 
     # configure the kernel
     #make "${BUILD_OPTIONS[@]}" menuconfig
