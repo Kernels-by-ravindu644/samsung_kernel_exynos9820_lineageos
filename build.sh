@@ -32,6 +32,16 @@ fi
 rm -rf "${SCRIPT_DIR}/"{out,dist} && \
     mkdir -p "${SCRIPT_DIR}/"{out,dist}
 
+# generate localversion
+BUILD_VERSION=$(git log -1 --pretty=%h 2>/dev/null)
+if [ -z "$BUILD_VERSION" ]; then
+    export BUILD_VERSION="dev"
+fi
+cat << EOF > "${SCRIPT_DIR}/arch/arm64/configs/version.config"
+CONFIG_LOCALVERSION_AUTO=n
+CONFIG_LOCALVERSION="-ravindu644-${BUILD_VERSION}"
+EOF
+
 # export toolchain paths
 export PATH="${HOME}/toolchains/clang-r563880c/bin:${PATH}"
 
@@ -76,7 +86,7 @@ build_kernel(){
         make "${BUILD_OPTIONS[@]}" mrproper
 
     # make default configuration.
-    make "${BUILD_OPTIONS[@]}" "${KERNEL_DEFCONFIG}" common.config droidspaces.config
+    make "${BUILD_OPTIONS[@]}" "${KERNEL_DEFCONFIG}" common.config droidspaces.config version.config
 
     # configure the kernel
     #make "${BUILD_OPTIONS[@]}" menuconfig
