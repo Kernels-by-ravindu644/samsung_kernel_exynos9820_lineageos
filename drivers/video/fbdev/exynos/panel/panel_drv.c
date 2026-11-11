@@ -1257,7 +1257,6 @@ bool show_copr_value(struct panel_device *panel, int frame_cnt)
 
 static void panel_condition_handler(struct work_struct *work)
 {
-	int ret = 0;
 	struct panel_work *w = container_of(to_delayed_work(work),
 			struct panel_work, dwork);
 	struct panel_device *panel =
@@ -1273,32 +1272,13 @@ static void panel_condition_handler(struct work_struct *work)
 	mutex_lock(&w->lock);
 	panel_info("%s: %s\n", __func__, condition->str_state[condition->check_state]);
 
-	switch (condition->check_state) {
-	case PRINT_NORMAL_PANEL_INFO:
-		// print rddpm
-		ret = panel_do_seqtbl_by_index(panel, PANEL_CHECK_CONDITION_SEQ);
-		if (unlikely(ret < 0))
-			panel_err("%s failed to write panel check\n", __func__);
-		if (show_copr_value(panel, condition->frame_cnt))
-			clear_check_wq_var(condition);
-		else
-			condition->check_state = CHECK_NORMAL_PANEL_INFO;
-		break;
-	case PRINT_DOZE_PANEL_INFO:
-		ret = panel_do_seqtbl_by_index(panel, PANEL_CHECK_CONDITION_SEQ);
-		if (unlikely(ret < 0))
-			panel_err("%s failed to write panel check\n", __func__);
-		clear_check_wq_var(condition);
-		break;
-	case CHECK_NORMAL_PANEL_INFO:
-		if (show_copr_value(panel, condition->frame_cnt))
-			clear_check_wq_var(condition);
-		break;
-	default:
-		pr_info("%s state %d\n", __func__, condition->check_state);
-		clear_check_wq_var(condition);
-		break;
-	}
+	/*
+	 * Non-original panel: do not read panel registers from the periodic
+	 * condition check. A failed DSI read makes DSIM wait for a response
+	 * and produces "MIPI DSIM read Timeout!" every 100 frames.
+	 * Clear the state as success without issuing any DSI traffic.
+	 */
+	clear_check_wq_var(condition);
 	mutex_unlock(&w->lock);
 	atomic_set(&w->running, 0);
 	panel_wake_unlock(panel);

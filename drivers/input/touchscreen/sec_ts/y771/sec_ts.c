@@ -2797,7 +2797,8 @@ retry_pmode:
 	if (mode != para) {
 		retrycnt++;
 		ts->mode_change_failed_count++;
-		if (retrycnt < 5)
+		/* one power-mode write/read attempt only (was 5 retries) */
+		if (retrycnt < 1)
 			goto retry_pmode;
 	}
 

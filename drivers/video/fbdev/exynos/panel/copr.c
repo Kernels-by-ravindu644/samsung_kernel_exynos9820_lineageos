@@ -239,6 +239,16 @@ static int panel_do_copr_seqtbl_by_index(struct copr_info *copr, int index)
 		return -EINVAL;
 	}
 
+	/*
+	 * Non-original panel: COPR register reads time out on DSI.
+	 * Skip only the read sequences and report success, so callers
+	 * (e.g. panel_get_copr()) keep working without touching the panel.
+	 */
+	if (index == COPR_SPI_GET_SEQ || index == COPR_DSI_GET_SEQ) {
+		pr_debug("%s: skip COPR read sequence (%d)\n", __func__, index);
+		return 0;
+	}
+
 	if (!IS_PANEL_ACTIVE(panel)) {
 		panel_warn("WARN:PANEL:%s:panel inactive state\n", __func__);
 		return -EINVAL;

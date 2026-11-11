@@ -12,6 +12,8 @@
 #include "exynos9820-beyondlte_input_common.dtsi"
 
 &hsi2c_10 {
+	/* Lower SCL for non-original touch controller; was 400 kHz default */
+	clock-frequency = <100000>;
 	status = "okay";
 	touchscreen@48 {
 		sec,project_name = "BEYOND1", "G973";
