@@ -1521,10 +1521,12 @@ static void *beyond1_a3_s0_exit_cmdtbl[] = {
 #endif
 	&KEYINFO(beyond1_a3_s0_level1_key_enable),
 #ifdef CONFIG_DISPLAY_USE_INFO
+	/*
+	 * Non-original panel: skip err_fg/dsi_err DUMP reads in exit-seq.
+	 * They block decon_disable for ~820 ms waiting for DSI responses.
+	 */
 	&KEYINFO(beyond1_a3_s0_level2_key_enable),
-	&s6e3ha9_dmptbl[DUMP_ERR_FG],
 	&KEYINFO(beyond1_a3_s0_level2_key_disable),
-	&s6e3ha9_dmptbl[DUMP_DSI_ERR],
 #endif
 	&PKTINFO(beyond1_a3_s0_sleep_in),
 	&KEYINFO(beyond1_a3_s0_level1_key_disable),
