@@ -1015,6 +1015,12 @@ int copr_enable(struct copr_info *copr)
 	struct copr_properties *props = &copr->props;
 	int ret;
 
+	/*
+	 * Non-original panel does not support COPR register access.
+	 * Never enable the block; report success so callers continue.
+	 */
+	return 0;
+
 	if (unlikely(!copr->props.support))
 		return -ENODEV;
 

@@ -1073,6 +1073,7 @@ static int exynos5_i2c_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	struct exynos5_i2c *i2c;
 	struct resource *mem;
+	struct resource res;
 	int ret;
 
 	if (!np) {
@@ -1106,6 +1107,17 @@ static int exynos5_i2c_probe(struct platform_device *pdev)
 		i2c->speed_mode = HSI2C_FAST_SPD;
 		if (of_property_read_u32(np, "clock-frequency", &i2c->fs_clock))
 			i2c->fs_clock = HSI2C_FS_TX_CLOCK;
+	}
+
+	/*
+	 * beyond1lte: the touch bus is 104b0000.hsi2c. The non-original
+	 * panel is unstable at 400 kHz, and dtbo is not always updated by
+	 * AnyKernel3, so force 100 kHz here regardless of DT.
+	 */
+	if (!of_address_to_resource(np, 0, &res) && res.start == 0x104B0000) {
+		i2c->speed_mode = HSI2C_FAST_SPD;
+		i2c->fs_clock = HSI2C_STAND_TX_CLOCK;
+		dev_info(&pdev->dev, "force 100 kHz for 104b0000.hsi2c\n");
 	}
 
 	/* Mode of operation Polling/Interrupt mode */

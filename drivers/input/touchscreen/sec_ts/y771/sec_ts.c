@@ -1003,6 +1003,12 @@ void sec_ts_reinit(struct sec_ts_data *ts)
 
 void sec_ts_print_info(struct sec_ts_data *ts)
 {
+	/*
+	 * Telemetry logging disabled for the non-original panel: it floods
+	 * dmesg during use and serves no functional purpose.
+	 */
+	return;
+#if 0
 	ts->print_info_cnt_open++;
 
 	if (ts->print_info_cnt_open > 0xfff0)
@@ -1030,6 +1036,7 @@ void sec_ts_print_info(struct sec_ts_data *ts)
 #endif
 			ts->tspid_val, ts->tspicid_val, ts->print_info_cnt_open,
 			ts->print_info_cnt_release);
+#endif
 }
 
 /************************************************************
@@ -2724,8 +2731,7 @@ static void sec_ts_print_info_work(struct work_struct *work)
 	struct sec_ts_data *ts = container_of(work, struct sec_ts_data,
 			work_print_info.work);
 	sec_ts_print_info(ts);
-	if (!shutdown_is_on_going_tsp)
-		schedule_delayed_work(&ts->work_print_info, msecs_to_jiffies(TOUCH_PRINT_INFO_DWORK_TIME));
+	/* Periodic telemetry is disabled; do not re-arm this work. */
 }
 
 static void sec_ts_read_info_work(struct work_struct *work)
@@ -2749,15 +2755,12 @@ static void sec_ts_read_info_work(struct work_struct *work)
 	sec_ts_run_rawdata_all(ts, false);
 	ts->info_work_done = true;
 
-	schedule_work(&ts->work_print_info.work);
-
+	/* Keep the one-time init above, but do not start telemetry. */
 }
 
 int sec_ts_set_lowpowermode(struct sec_ts_data *ts, u8 mode)
 {
 	int ret;
-	int retrycnt = 0;
-	char para = 0;
 
 	input_err(true, &ts->client->dev, "%s: %s(%X)\n", __func__,
 			mode == TO_LOWPOWER_MODE ? "ENTER" : "EXIT", ts->lowpower_mode);
@@ -2777,30 +2780,17 @@ int sec_ts_set_lowpowermode(struct sec_ts_data *ts, u8 mode)
 		sec_ts_set_prox_power_off(ts, 0);
 	}
 
-retry_pmode:
 	ret = sec_ts_i2c_write(ts, SEC_TS_CMD_SET_POWER_MODE, &mode, 1);
 	if (ret < 0) {
 		input_err(true, &ts->client->dev, "%s: failed\n", __func__);
 		goto i2c_error;
 	}
 
-	sec_ts_delay(50);
-
-	ret = sec_ts_i2c_read(ts, SEC_TS_CMD_SET_POWER_MODE, &para, 1);
-	if (ret < 0) {
-		input_err(true, &ts->client->dev, "%s: read power mode failed!\n", __func__);
-		goto i2c_error;
-	} else {
-		input_info(true, &ts->client->dev, "%s: power mode - write(%d) read(%d)\n", __func__, mode, para);
-	}
-
-	if (mode != para) {
-		retrycnt++;
-		ts->mode_change_failed_count++;
-		/* one power-mode write/read attempt only (was 5 retries) */
-		if (retrycnt < 1)
-			goto retry_pmode;
-	}
+	/*
+	 * Non-original panel: do not read back the power mode here.
+	 * The write is enough; the read only adds bus traffic and delays
+	 * both suspend and resume.
+	 */
 
 	if (mode) {
 		ret = sec_ts_i2c_write(ts, SEC_TS_CMD_CLEAR_EVENT_STACK, NULL, 0);
